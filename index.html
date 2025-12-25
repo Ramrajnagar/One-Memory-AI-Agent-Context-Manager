@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One Memory | AI Agent Context Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --dark: #0f172a;
+            --darker: #020617;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, #1e1b4b 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Header */
+        header {
+            padding: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+            color: var(--primary);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+
+        nav a {
+            color: var(--light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+            padding: 5px 0;
+        }
+
+        nav a:hover {
+            color: var(--primary);
+        }
+
+        nav a:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+
+        nav a:hover:after {
+            width: 100%;
+        }
+
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 80px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 60px;
+            position: relative;
+        }
+
+        .hero-content {
+            flex: 1;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, var(--light), var(--primary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--gray);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .secondary-button {
+            background: transparent;
+            color: var(--light);
+            border: 1px solid var(--glass-border);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .secondary-button:hover {
+            background: var(--glass);
+            border-color: var(--primary);
+        }
+
+        /* 3D Canvas */
+        #memory-canvas {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hero-visual {
+            flex: 1;
+            height: 500px;
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Features Section */
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-title h2 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .section-title p {
+            color: var(--gray);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .features {
+            padding: 100px 0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.4s;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-card:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), transparent);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .feature-card:hover:before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-card p {
+            color: var(--gray);
+            line-height: 1.6;
+        }
+
+        /* Dashboard Preview */
+        .dashboard-preview {
+            padding: 100px 0;
+            position: relative;
+        }
+
+        .dashboard-container {
+            background: var(--glass);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+
+        .dashboard-header {
+            padding: 20px 30px;
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dashboard-content {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+
+        .memory-visualization {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .memory-stats {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 10px 0;
+            color: var(--primary);
+        }
+
+        /* Footer */
+        footer {
+            padding: 60px 0 30px;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 100px;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-section h3 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-section ul li a {
+            color: var(--gray);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-section ul li a:hover {
+            color: var(--primary);
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid var(--glass-border);
+            color: var(--gray);
+        }
+
+        /* Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero {
+                flex-direction: column;
+            }
+            
+            #memory-canvas {
+                position: relative;
+                width: 100%;
+                height: 400px;
+            }
+            
+            .hero-visual {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav ul {
+                display: none;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-brain logo-icon"></i>
+                <span>One Memory</span>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#dashboard">Dashboard</a></li>
+                    <li><a href="#integrations">Integrations</a></li>
+                    <li><a href="#docs">Documentation</a></li>
+                </ul>
+            </nav>
+            <button class="cta-button">Get Started</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>One Memory for All Your Dev Agents</h1>
+                    <p>Eliminate context loss when switching between AI tools. Our MCP-enabled shared memory layer enables agents to store and recall context seamlessly across sessions and platforms.</p>
+                    <div class="hero-buttons">
+                        <button class="cta-button pulse">
+                            <i class="fas fa-rocket"></i> Start Free Trial
+                        </button>
+                        <button class="secondary-button">
+                            <i class="fas fa-play-circle"></i> Watch Demo
+                        </button>
+                    </div>
+                </div>
+                <div class="hero-visual floating">
+                    <div id="memory-canvas"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Powerful Features</h2>
+                    <p>Designed to boost developer flow and create smarter, memory-aware dev environments</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3>Define Schema</h3>
+                        <p>Define the structure for shared context fields using JSON or SQLite. Flexible schemas adapt to your specific development needs.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-broadcast-tower"></i>
+                        </div>
+                        <h3>Enable Communication</h3>
+                        <p>Use LongChain or Cross-Platform APIs with Redis for real-time context sharing between all your development tools and agents.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-plug"></i>
+                        </div>
+                        <h3>Integrate Tools</h3>
+                        <p>Create plugins or APIs for Claude Desktop, Cursor IDE, VSCode, and other popular development environments.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-save"></i>
+                        </div>
+                        <h3>Persist State</h3>
+                        <p>Store session data in local files or cloud backends for continuity across sessions, devices, and team members.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="dashboard" class="dashboard-preview">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Live Dashboard Preview</h2>
+                    <p>Monitor and manage your AI agent memories in real-time</p>
+                </div>
+                <div class="dashboard-container">
+                    <div class="dashboard-header">
+                        <div class="dashboard-title">
+                            <i class="fas fa-chart-network" style="color: var(--primary);"></i>
+                            <h3>Memory Dashboard</h3>
+                        </div>
+                        <div>
+                            <span class="secondary-button" style="padding: 8px 16px; font-size: 0.9rem;">
+                                <i class="fas fa-sync-alt"></i> Real-time
+                            </span>
+                        </div>
+                    </div>
+                    <div class="dashboard-content">
+                        <div class="memory-visualization">
+                            <div id="memory-structure"></div>
+                            <canvas id="network-canvas" width="600" height="300" style="width: 100%; height: 100%; border-radius: 8px;"></canvas>
+                        </div>
+                        <div class="memory-stats">
+                            <div class="stat-card">
+                                <h4>Active Sessions</h4>
+                                <div class="stat-value">24</div>
+                                <p>Across 8 different tools</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Memory Usage</h4>
+                                <div class="stat-value">87%</div>
+                                <p>2.4GB / 2.8GB capacity</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Context Retrievals</h4>
+                                <div class="stat-value">1.2k</div>
+                                <p>Today across all agents</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Integration Health</h4>
+                                <div class="stat-value">
+                                    <span style="color: var(--secondary);">All Systems Go</span>
+                                </div>
+                                <p>Claude, Cursor, VSCode, JetBrains</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>One Memory</h3>
+                    <p>The unified memory layer for AI development agents. Eliminate context loss and boost productivity.</p>
+                    <div style="margin-top: 20px; display: flex; gap: 15px;">
+                        <a href="#" style="color: var(--gray); font-size: 1.2rem;"><i class="fab fa-github"></i></a>
+                        <a href="#" style="color: var(--gray); font-size: 1.2rem;"><i class="fab fa-twitter"></i></a>
+                        <a href="#" style="color: var(--gray); font-size: 1.2rem;"><i class="fab fa-discord"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>Integrations</h3>
+                    <ul>
+                        <li><a href="#">Claude Desktop</a></li>
+                        <li><a href="#">Cursor IDE</a></li>
+                        <li><a href="#">VSCode</a></li>
+                        <li><a href="#">JetBrains Suite</a></li>
+                        <li><a href="#">Custom API</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Resources</h3>
+                    <ul>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">API Reference</a></li>
+                        <li><a href="#">GitHub Examples</a></li>
+                        <li><a href="#">Community</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <ul>
+                        <li><a href="#">Support</a></li>
+                        <li><a href="#">Sales</a></li>
+                        <li><a href="#">Partnerships</a></li>
+                        <li><a href="#">Feedback</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2025 One Memory. Developed by Bhavishya Pandit. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize 3D Memory Visualization
+        let scene, camera, renderer, controls;
+        let memoryNodes = [];
+        
+        function init3DVisualization() {
+            const canvas = document.getElementById('memory-canvas');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = null;
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, canvas.offsetWidth / canvas.offsetHeight, 0.1, 1000);
+            camera.position.z = 15;
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+            canvas.appendChild(renderer.domElement);
+            
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0x6366f1, 1);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0x10b981, 0.8, 100);
+            pointLight.position.set(-5, -5, 5);
+            scene.add(pointLight);
+            
+            // Create memory nodes
+            const nodeGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const edgeGeometry = new THREE.CylinderGeometry(0.03, 0.03, 1);
+            
+            // Materials
+            const nodeMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x6366f1,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            const edgeMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x10b981,
+                transparent: true,
+                opacity: 0.6
+            });
+            
+            // Create central node
+            const centralNode = new THREE.Mesh(nodeGeometry, nodeMaterial);
+            centralNode.scale.set(1.5, 1.5, 1.5);
+            scene.add(centralNode);
+            memoryNodes.push(centralNode);
+            
+            // Create surrounding nodes and edges
+            const nodeCount = 8;
+            for (let i = 0; i < nodeCount; i++) {
+                const angle = (i / nodeCount) * Math.PI * 2;
+                const radius = 5;
+                
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                const z = (Math.random() - 0.5) * 2;
+                
+                const node = new THREE.Mesh(nodeGeometry, nodeMaterial.clone());
+                node.position.set(x, y, z);
+                scene.add(node);
+                memoryNodes.push(node);
+                
+                // Create edge
+                const edge = new THREE.Mesh(edgeGeometry, edgeMaterial);
+                
+                // Position and rotate edge to connect nodes
+                const edgeVector = new THREE.Vector3().subVectors(node.position, centralNode.position);
+                const edgeLength = edgeVector.length();
+                
+                edge.scale.set(1, edgeLength, 1);
+                edge.position.copy(centralNode.position).add(edgeVector.multiplyScalar(0.5));
+                edge.lookAt(node.position);
+                edge.rotateX(Math.PI / 2);
+                
+                scene.add(edge);
+            }
+            
+            // Add floating particles
+            const particleCount = 200;
+            const particleGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 20;
+                positions[i + 1] = (Math.random() - 0.5) * 20;
+                positions[i + 2] = (Math.random() - 0.5) * 20;
+            }
+            
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            
+            const particleMaterial = new THREE.PointsMaterial({
+                color: 0x6366f1,
+                size: 0.05,
+                transparent: true,
+                opacity: 0.6
+            });
+            
+            const particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+            
+            // Animation
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                // Rotate nodes
+                memoryNodes.forEach((node, index) => {
+                    if (index > 0) {
+                        node.rotation.x += 0.01;
+                        node.rotation.y += 0.01;
+                    }
+                });
+                
+                // Rotate particles
+                particles.rotation.y += 0.002;
+                
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = canvas.offsetWidth / canvas.offsetHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+            });
+        }
+        
+        // Initialize network graph visualization
+        function initNetworkVisualization() {
+            const canvas = document.getElementById('network-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const nodes = [
+                { id: 'Claude', x: 150, y: 150, connections: ['Memory', 'Cursor'] },
+                { id: 'Cursor', x: 450, y: 150, connections: ['Memory', 'Claude', 'VSCode'] },
+                { id: 'VSCode', x: 450, y: 300, connections: ['Memory', 'Cursor'] },
+                { id: 'Memory', x: 300, y: 225, connections: ['Claude', 'Cursor', 'VSCode', 'Redis'] },
+                { id: 'Redis', x: 300, y: 75, connections: ['Memory'] }
+            ];
+            
+            function drawNetwork() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw connections
+                ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
+                ctx.lineWidth = 2;
+                
+                nodes.forEach(node => {
+                    node.connections.forEach(connectionId => {
+                        const targetNode = nodes.find(n => n.id === connectionId);
+                        if (targetNode) {
+                            ctx.beginPath();
+                            ctx.moveTo(node.x, node.y);
+                            ctx.lineTo(targetNode.x, targetNode.y);
+                            ctx.stroke();
+                            
+                            // Draw animated pulse along the connection
+                            const pulseTime = Date.now() / 1000;
+                            const pulsePos = (pulseTime % 2) / 2;
+                            
+                            const pulseX = node.x + (targetNode.x - node.x) * pulsePos;
+                            const pulseY = node.y + (targetNode.y - node.y) * pulsePos;
+                            
+                            ctx.beginPath();
+                            ctx.arc(pulseX, pulseY, 4, 0, Math.PI * 2);
+                            ctx.fillStyle = 'rgba(99, 102, 241, 0.8)';
+                            ctx.fill();
+                        }
+                    });
+                });
+                
+                // Draw nodes
+                nodes.forEach(node => {
+                    // Node glow
+                    const gradient = ctx.createRadialGradient(
+                        node.x, node.y, 0,
+                        node.x, node.y, 25
+                    );
+                    
+                    if (node.id === 'Memory') {
+                        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.8)');
+                        gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+                    } else {
+                        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.6)');
+                        gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+                    }
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(node.x - 25, node.y - 25, 50, 50);
+                    
+                    // Node circle
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, 15, 0, Math.PI * 2);
+                    ctx.fillStyle = node.id === 'Memory' ? '#6366f1' : '#10b981';
+                    ctx.fill();
+                    
+                    // Node text
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(node.id, node.x, node.y);
+                });
+                
+                requestAnimationFrame(drawNetwork);
+            }
+            
+            drawNetwork();
+        }
+        
+        // Interactive features
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize visualizations
+            init3DVisualization();
+            initNetworkVisualization();
+            
+            // Add hover effects to feature cards
+            const featureCards = document.querySelectorAll('.feature-card');
+            featureCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    const icon = this.querySelector('.feature-icon');
+                    icon.style.transform = 'scale(1.1) rotate(5deg)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    const icon = this.querySelector('.feature-icon');
+                    icon.style.transform = 'scale(1) rotate(0deg)';
+                });
+            });
+            
+            // Animate stats counter
+            const statValues = document.querySelectorAll('.stat-value');
+            statValues.forEach(stat => {
+                if (!stat.innerHTML.includes('Systems')) {
+                    const finalValue = parseInt(stat.textContent);
+                    let currentValue = 0;
+                    const increment = finalValue / 30;
+                    
+                    const timer = setInterval(() => {
+                        currentValue += increment;
+                        if (currentValue >= finalValue) {
+                            stat.textContent = finalValue.toLocaleString();
+                            clearInterval(timer);
+                        } else {
+                            stat.textContent = Math.floor(currentValue).toLocaleString();
+                        }
+                    }, 50);
+                }
+            });
+            
+            // CTA button interactions
+            const ctaButtons = document.querySelectorAll('.cta-button, .secondary-button');
+            ctaButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                    
+                    if (this.classList.contains('cta-button')) {
+                        // Show success message
+                        const originalText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-check"></i> Redirecting...';
+                        this.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+                        
+                        setTimeout(() => {
+                            this.innerHTML = originalText;
+                            this.style.background = '';
+                        }, 2000);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
